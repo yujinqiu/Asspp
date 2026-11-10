@@ -22,6 +22,11 @@ enum StoreDownloadService {
     }
 
     static func versions(account: inout Account, package: AppStore.AppPackage) async throws -> [String] {
+        #if os(macOS)
+            let result = try await ModernStore.shared.perform(.init(operation: "versions", appID: package.software.id, platform: ModernStore.platform(package)), email: account.email)
+            guard let versions = result.versions, !versions.isEmpty else { throw StoreDownloadError.noVersions }
+            return versions
+        #else
         try await product(account: &account, package: package, version: nil, operation: "versions") { item in
             guard let metadata = item["metadata"] as? [String: Any],
                   let identifiers = metadata["softwareVersionExternalIdentifiers"] as? [Any]
@@ -30,9 +35,15 @@ enum StoreDownloadService {
             guard !versions.isEmpty else { throw StoreDownloadError.noVersions }
             return versions
         }
+        #endif
     }
 
     static func versionMetadata(account: inout Account, package: AppStore.AppPackage, versionID: String) async throws -> VersionMetadata {
+        #if os(macOS)
+            let result = try await ModernStore.shared.perform(.init(operation: "metadata", appID: package.software.id, platform: ModernStore.platform(package), versionID: versionID), email: account.email)
+            guard let version = result.version, let text = result.releaseDate, let date = ISO8601DateFormatter().date(from: text) else { throw StoreDownloadError.invalidPackage }
+            return VersionMetadata(displayVersion: version, releaseDate: date)
+        #else
         try await product(account: &account, package: package, version: versionID, operation: "version-metadata") { item in
             guard let metadata = item["metadata"] as? [String: Any],
                   let version = metadata["bundleShortVersionString"] as? String,
@@ -41,6 +52,7 @@ enum StoreDownloadService {
             else { throw StoreDownloadError.invalidPackage }
             return VersionMetadata(displayVersion: version, releaseDate: releaseDate)
         }
+        #endif
     }
 
     private static func product<Result>(account: inout Account, package: AppStore.AppPackage, version: String?, operation: String, parse: ([String: Any]) throws -> Result) async throws -> Result {

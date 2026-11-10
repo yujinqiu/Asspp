@@ -77,3 +77,8 @@ ENABLE_PREVIEWS = YES
 SWIFT_EMIT_LOC_STRINGS = YES
 LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks
 LD_RUNPATH_SEARCH_PATHS[sdk=macosx*] = $(inherited) @executable_path/../Frameworks
+
+// macOS fork: the Store helper and devicectl run as the current user.
+PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*] = cn.yumyu.Asspp
+ENABLE_APP_SANDBOX[sdk=macosx*] = NO
+ENABLE_USER_SCRIPT_SANDBOXING = NO

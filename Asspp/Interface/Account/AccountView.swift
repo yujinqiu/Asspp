@@ -13,6 +13,9 @@ struct AccountView: View {
     @State private var addAccount = false
     @State private var selectedID: AppStore.UserAccount.ID?
     @State private var navigationPath = NavigationPath()
+    @State private var isImporting = false
+    @State private var importError = ""
+    @State private var showImportError = false
 
     var body: some View {
         #if os(macOS)
@@ -55,6 +58,9 @@ struct AccountView: View {
                     .frame(minWidth: 480, idealWidth: 520, minHeight: 340, idealHeight: 380)
             }
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+            .alert("Unable to Import Login", isPresented: $showImportError) {
+                Button("OK", role: .cancel) {}
+            } message: { Text(importError) }
         }
 
         private var accountsTable: some View {
@@ -108,6 +114,26 @@ struct AccountView: View {
 
         @ToolbarContentBuilder
         private var macToolbar: some ToolbarContent {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    Task {
+                        isImporting = true
+                        defer { isImporting = false }
+                        do {
+                            let session = try await StoreAuthenticator()
+                            let account = try await session.importAccount()
+                            try vm.save(email: account.email, account: account)
+                        } catch {
+                            importError = error.localizedDescription
+                            showImportError = true
+                        }
+                    }
+                } label: {
+                    Label("Import Existing Login", systemImage: "person.crop.circle.badge.checkmark")
+                }
+                .help("Import the ipatool account already signed in on this Mac.")
+                .disabled(isImporting)
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     addAccount.toggle()

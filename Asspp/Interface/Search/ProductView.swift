@@ -108,6 +108,9 @@ struct ProductView: View {
     /// account. Sets `licenseHint` to a success message; callers handle errors.
     private func acquireLicense() async throws {
         guard let account else { return }
+        #if os(macOS)
+            try await ModernStore.shared.purchase(account: account.account, package: archive.package)
+        #else
         try await vm.withAccount(id: account.id) { userAccount in
             try await ApplePackage.Authenticator.rotatePasswordToken(for: &userAccount.account)
             try await ApplePackage.Purchase.purchase(
@@ -115,6 +118,7 @@ struct ProductView: View {
                 app: archive.package.software,
             )
         }
+        #endif
         licenseHint = Hint(message: String(localized: "Request Succeeded"), color: .green)
     }
 

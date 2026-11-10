@@ -15,7 +15,7 @@ class AppStore {
     private var _accounts = Persist<[UserAccount]>(
         key: "Accounts",
         defaultValue: [],
-        engine: KeychainStorage(service: "wiki.qaq.Asspp.Accounts"),
+        engine: AppStore.accountStorage,
     )
 
     var accounts: [UserAccount] {
@@ -66,6 +66,14 @@ class AppStore {
     }
 
     static let this = AppStore()
+
+    private static var accountStorage: KeychainStorage {
+        #if os(macOS)
+            KeychainStorage(service: "cn.yumyu.Asspp.Accounts", synchronizable: false)
+        #else
+            KeychainStorage(service: "wiki.qaq.Asspp.Accounts")
+        #endif
+    }
 
     static func normalizedDeviceIdentifier(_ value: String) -> String? {
         let identifier = value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -119,9 +127,14 @@ class AppStore {
         }
     }
 
-    func delete(id: UserAccount.ID) {
-        logger.info("deleting account id: \(id)")
-        accounts = accounts.filter { $0.id != id }
+    func delete(id: UserAccount.ID) async throws {
+        #if os(macOS)
+            try await ModernStore.shared.remove(email: id)
+        #endif
+        let remaining = accounts.filter { $0.id != id }
+        try withMutation(keyPath: \.accounts) {
+            try _accounts.setAndSave(remaining)
+        }
     }
 
     var possibleRegions: Set<String> {

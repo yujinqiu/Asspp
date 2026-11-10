@@ -1,113 +1,32 @@
-name: Build App
-
+name: Build Mac App
 on:
   push:
-    branches: [main]
+    branches: [main, macos-modern-store]
   pull_request:
     branches: [main]
-
+permissions:
+  contents: read
 jobs:
-  build-ios:
+  macos:
     runs-on: macos-26
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Select newest non-beta Xcode
-        run: |
-          set -euo pipefail
-          best_path=""
-          best_ver=""
-          for app in /Applications/Xcode*.app; do
-            [ -d "$app" ] || continue
-            info="$app/Contents/Info.plist"
-            [ -f "$info" ] || continue
-            # Skip beta/release-candidate installs.
-            case "$(printf '%s' "$app" | tr '[:upper:]' '[:lower:]')" in
-              *beta*|*_rc*) continue ;;
-            esac
-            ver="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info" 2>/dev/null || true)"
-            [ -n "$ver" ] || continue
-            if [ -z "$best_ver" ] || [ "$(printf '%s\n%s\n' "$best_ver" "$ver" | sort -V | tail -1)" = "$ver" ]; then
-              best_ver="$ver"
-              best_path="$app"
-            fi
-          done
-          if [ -z "$best_path" ]; then
-            echo "::error::No non-beta Xcode found"
-            exit 1
-          fi
-          echo "Selected Xcode $best_ver at $best_path"
-          sudo xcode-select -s "$best_path"
-          xcodebuild -version
-
-      - name: Ensure iOS platform is installed
-        run: xcodebuild -downloadPlatform iOS || true
-
-      - name: Install Procursus
-        uses: dhinakg/procursus-action@main
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          packages: ldid findutils sed coreutils make
-
-      - name: Build
-        run: |
-          chmod +x Resources/Scripts/compile.release.mobile.ci.sh
-          ./Resources/Scripts/compile.release.mobile.ci.sh "$(pwd)" "$(pwd)/Asspp.ipa"
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+          go-version-file: StoreEngine/go.mod
+          cache-dependency-path: StoreEngine/go.sum
+      - name: Test Store engine
+        working-directory: StoreEngine
+        run: go test -race ./...
+      - name: Test download protocol
+        run: bash Resources/Scripts/check.downloads.sh
+      - name: Install build formatter
+        run: brew list xcbeautify >/dev/null 2>&1 || brew install xcbeautify
+      - name: Build macOS package
+        run: bash Resources/Scripts/compile.release.osx.sh "$PWD" "$RUNNER_TEMP/Asspp-macos-arm64.zip"
+      - name: Check release privacy
+        run: python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp-macos-arm64.zip"
+      - uses: actions/upload-artifact@v4
         with:
-          name: Asspp.ipa
-          path: Asspp.ipa
-
-  build-osx:
-    runs-on: macos-26
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Select newest non-beta Xcode
-        run: |
-          set -euo pipefail
-          best_path=""
-          best_ver=""
-          for app in /Applications/Xcode*.app; do
-            [ -d "$app" ] || continue
-            info="$app/Contents/Info.plist"
-            [ -f "$info" ] || continue
-            # Skip beta/release-candidate installs.
-            case "$(printf '%s' "$app" | tr '[:upper:]' '[:lower:]')" in
-              *beta*|*_rc*) continue ;;
-            esac
-            ver="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info" 2>/dev/null || true)"
-            [ -n "$ver" ] || continue
-            if [ -z "$best_ver" ] || [ "$(printf '%s\n%s\n' "$best_ver" "$ver" | sort -V | tail -1)" = "$ver" ]; then
-              best_ver="$ver"
-              best_path="$app"
-            fi
-          done
-          if [ -z "$best_path" ]; then
-            echo "::error::No non-beta Xcode found"
-            exit 1
-          fi
-          echo "Selected Xcode $best_ver at $best_path"
-          sudo xcode-select -s "$best_path"
-          xcodebuild -version
-
-      - name: Install Procursus
-        uses: dhinakg/procursus-action@main
-        with:
-          packages: ldid findutils sed coreutils make
-
-      - name: Build
-        run: |
-          chmod +x Resources/Scripts/compile.release.osx.sh
-          ./Resources/Scripts/compile.release.osx.sh "$(pwd)" "$(pwd)/Asspp.zip"
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Asspp.zip
-          path: Asspp.zip
+          name: Asspp-macos-arm64
+          path: ${{ runner.temp }}/Asspp-macos-arm64.zip

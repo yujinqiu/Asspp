@@ -26,6 +26,9 @@ class Downloads {
     /// would run finalize() twice and destroy the downloaded bytes).
     @ObservationIgnored
     private var registeredCallbacks: Set<UUID> = []
+    #if os(macOS)
+        @ObservationIgnored var engineDownloads: [UUID: (token: UUID, task: Task<Void, Never>)] = [:]
+    #endif
 
     private static let speedFormatter: ByteCountFormatter = {
         let fmt = ByteCountFormatter()
@@ -56,6 +59,11 @@ class Downloads {
         runningTaskCount = manifests.count(where: { $0.state.status == .downloading })
     }
 
+    func storeEngineStateDidChange() {
+        refreshRunningTaskCount()
+        saveManifests()
+    }
+
     private init() {
         for idx in manifests.indices {
             manifests[idx].state.resetIfNotCompleted()
@@ -68,7 +76,11 @@ class Downloads {
     }
 
     func downloadRequest(forArchive archive: AppStore.AppPackage) -> PackageManifest? {
-        manifests.first { $0.package.id == archive.id && $0.package.externalVersionID == archive.externalVersionID }
+        manifests.first {
+            $0.package.id == archive.id && $0.package.externalVersionID == archive.externalVersionID
+                && $0.package.software.version == archive.software.version
+                && ($0.package.entityType ?? .iPhone) == (archive.entityType ?? .iPhone)
+        }
     }
 
     func add(request: PackageManifest) -> PackageManifest {
@@ -79,16 +91,25 @@ class Downloads {
     }
 
     func suspend(request: PackageManifest) {
+        #if os(macOS)
+            engineDownloads.removeValue(forKey: request.id)?.task.cancel()
+            request.state.status = .paused
+            storeEngineStateDidChange()
+        #else
         logger.info("suspending download request id: \(request.id)")
         DiggerManager.shared.stopTask(for: request.url)
         request.state.resetIfNotCompleted()
         refreshRunningTaskCount()
         saveManifests()
+        #endif
     }
 
     func resume(request: PackageManifest) {
         logger.info("resuming download request id: \(request.id)")
         request.state.start()
+        #if os(macOS)
+            resumeStoreEngine(request)
+        #else
         let seed = DiggerManager.shared.download(with: request.url)
 
         // Only attach callbacks once per manifest; a pause/resume cycle reuses
@@ -169,6 +190,7 @@ class Downloads {
             }
         DiggerManager.shared.startTask(for: request.url)
         saveManifests()
+        #endif
     }
 
     private func finalize(manifest: PackageManifest, preparedContentAt downloadedFile: URL) async throws {
@@ -201,6 +223,9 @@ class Downloads {
     }
 
     func delete(request: PackageManifest) {
+        #if os(macOS)
+            engineDownloads.removeValue(forKey: request.id)?.task.cancel()
+        #endif
         logger.info("deleting download request id: \(request.id)")
         DiggerManager.shared.cancelTask(for: request.url)
         registeredCallbacks.remove(request.id)
@@ -219,6 +244,10 @@ class Downloads {
     }
 
     func removeAll() {
+        #if os(macOS)
+            engineDownloads.values.forEach { $0.task.cancel() }
+            engineDownloads.removeAll()
+        #endif
         manifests.forEach { $0.delete() }
         manifests.removeAll()
         registeredCallbacks.removeAll()

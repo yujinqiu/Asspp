@@ -1,4 +1,36 @@
-# Asspp
+# Asspp — JimYu macOS fork
+
+A macOS build of Asspp for managing App Store downloads and updating apps on a connected iPhone or iPad. It includes a pinned, modern ipatool engine with local Anisette/AMD authentication and the restore-image HTTP 403 fix.
+
+## Use on Mac
+
+1. Download the Apple Silicon Mac ZIP from [Releases](https://github.com/yujinqiu/Asspp/releases), unzip, and move Asspp.app into Applications.
+2. In **Accounts**, choose **Add Account** and finish Apple verification. If you already signed in with ipatool on this Mac, **Import Existing Login** can reuse that session; macOS may ask you to approve Keychain access.
+3. Search in the account's region, download the official IPA, then select your connected iPhone under the package's Install control. Paid apps must already be owned. Free licenses can be acquired in the app.
+4. Apps installed through Asspp appear under **Installed**. Use **Update** there for later versions.
+
+Apple passwords and verification codes are sent through private local pipes to Apple authentication. Passwords are not retained. Sessions are isolated per account in the local Keychain and are not written into download history. The helper is included in the app; no separate ipatool installation or terminal login is needed.
+
+The first authentication may download and verify approximately 175 MB of pinned Apple components into the user cache. These components are fetched from Apple and are not included in the release. Existing ipatool caches can be reused.
+
+## Build and verify
+
+Requires Xcode, Go 1.26.5+ and xcbeautify. Copy Configuration/Developer.xcconfig.template to Configuration/Developer.xcconfig and configure local signing, or use the unsigned packaging script.
+
+```sh
+(cd StoreEngine && go test -race ./...)
+bash Resources/Scripts/check.downloads.sh
+bash Resources/Scripts/compile.release.osx.sh "$PWD" /tmp/Asspp-macos-arm64.zip
+python3 Resources/Scripts/check.release.privacy.py /tmp/Asspp-macos-arm64.zip
+```
+
+The macOS fork uses bundle ID `cn.yumyu.Asspp`, keeps its sessions separate from upstream iOS accounts, and targets macOS 15+. The shipped artifact targets Apple Silicon. The iOS sources remain available but are not part of this fork's release.
+
+The engine dependency is pinned in StoreEngine/go.mod; update it there and run the tests before releasing a new version. See [engine documentation](StoreEngine/README.md).
+
+---
+
+# Upstream Asspp
 
 **The Ultimate Multi-Region App Store Manager.**
 

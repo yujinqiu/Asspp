@@ -72,6 +72,15 @@ class PackageManifest: Identifiable, Codable, Hashable, Equatable {
         creation = .init()
     }
 
+    init(account: AppStore.UserAccount, package: AppStore.AppPackage) {
+        self.account = account
+        self.package = package
+        url = URL(string: "asspp-store://download/\(UUID().uuidString)")!
+        signatures = []
+        iTunesMetadata = Data()
+        creation = .init()
+    }
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)

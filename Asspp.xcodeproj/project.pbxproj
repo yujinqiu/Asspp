@@ -113,6 +113,7 @@
 				50D44CFE2C3F91F700CF6A69 /* Sources */,
 				50D44CFF2C3F91F700CF6A69 /* Frameworks */,
 				50D44D002C3F91F700CF6A69 /* Resources */,
+				A55200000000000000000001 /* Embed Store Engine */,
 			);
 			buildRules = (
 			);
@@ -222,6 +223,18 @@
 			shellPath = /bin/sh;
 			shellScript = "DEVELOPER_CONFIG=\"${SRCROOT}/Configuration/Developer.xcconfig\"\nTEMPLATE_CONFIG=\"${SRCROOT}/Configuration/Developer.xcconfig.template\"\n\nif [ ! -f \"$DEVELOPER_CONFIG\" ]; then\n    echo \"error: Developer.xcconfig not found!\"\n    echo \"error: Please copy Developer.xcconfig.template to Developer.xcconfig and configure your signing settings.\"\n    echo \"error: Run: cp \\\"$TEMPLATE_CONFIG\\\" \\\"$DEVELOPER_CONFIG\\\"\"\n    exit 1\nfi\n\necho \"Developer.xcconfig found.\"\n";
 		};
+		A55200000000000000000001 /* Embed Store Engine */ = {
+            isa = PBXShellScriptBuildPhase;
+            alwaysOutOfDate = 1;
+            buildActionMask = 2147483647;
+            files = ();
+            inputPaths = ();
+            name = "Embed Store Engine";
+            outputPaths = ();
+            runOnlyForDeploymentPostprocessing = 0;
+            shellPath = /bin/sh;
+            shellScript = "if [ \"$PLATFORM_NAME\" = macosx ]; then /bin/bash \"$SRCROOT/Resources/Scripts/build.store-engine.sh\" \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Helpers\"; fi\n";
+        };
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -353,7 +366,6 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				MARKETING_VERSION = 4.2.0;
 			};
 			name = Debug;
 		};
@@ -374,7 +386,6 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				MARKETING_VERSION = 4.2.0;
 			};
 			name = Release;
 		};

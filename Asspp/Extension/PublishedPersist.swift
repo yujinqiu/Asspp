@@ -47,8 +47,8 @@ class FileStorage: PersistProvider {
 class KeychainStorage: PersistProvider {
     private let keychain: Keychain
 
-    init(service: String) {
-        keychain = Keychain(service: service).synchronizable(true)
+    init(service: String, synchronizable: Bool = true) {
+        keychain = Keychain(service: service).synchronizable(synchronizable)
     }
 
     func data(forKey key: String) throws -> Data? {

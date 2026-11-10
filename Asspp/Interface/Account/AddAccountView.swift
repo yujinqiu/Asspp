@@ -20,9 +20,13 @@ struct AddAccountView: View {
     @State private var codeRequired: Bool = false
     @State private var code: String = ""
 
-    @State private var authenticator: ApplePackage.Authenticator?
+    @State private var authenticator: StoreAuthenticator?
     @State private var isAuthenticating = false
     @State private var error: Error?
+
+    init(email: String = "") {
+        _email = State(initialValue: email)
+    }
 
     var body: some View {
         Form {
@@ -61,7 +65,11 @@ struct AddAccountView: View {
                     .disabled(password.isEmpty)
                 }
             } footer: {
-                Text("Your account is saved in your Keychain and will be synced across devices with the same iCloud account signed in.")
+                #if os(macOS)
+                    Text("Authentication stays on this Mac. Credentials are sent only to Apple; account sessions are stored in Keychain.")
+                #else
+                    Text("Your account is saved in your Keychain and will be synced across devices with the same iCloud account signed in.")
+                #endif
             }
             if codeRequired {
                 Section {
@@ -84,11 +92,11 @@ struct AddAccountView: View {
                     defer { isAuthenticating = false }
                     logger.info("starting authentication for user")
                     do {
-                        let session: ApplePackage.Authenticator
+                        let session: StoreAuthenticator
                         if let authenticator {
                             session = authenticator
                         } else {
-                            session = try await ApplePackage.Authenticator()
+                            session = try await StoreAuthenticator()
                             authenticator = session
                         }
                         _ = try await vm.authenticate(email: email, password: password, code: code, using: session)

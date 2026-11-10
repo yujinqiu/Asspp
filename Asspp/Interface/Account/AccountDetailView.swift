@@ -20,6 +20,9 @@ struct AccountDetailView: View {
     }
 
     @State private var rotatingHint = ""
+    @State private var signInAgain = false
+    @State private var deleteError = ""
+    @State private var showDeleteError = false
 
     var body: some View {
         Form {
@@ -56,6 +59,15 @@ struct AccountDetailView: View {
             } footer: {
                 Text("This ID, combined with a random seed generated on this device, can be used to download packages from the App Store.")
             }
+            #if os(macOS)
+            Section {
+                Button("Sign In Again") { signInAgain = true }
+            } header: {
+                Text("Authentication")
+            } footer: {
+                Text("This account's authentication state is stored in Keychain on this Mac. Sign in again if Apple requests verification.")
+            }
+            #else
             Section {
                 SecureField(text: .constant(account?.account.passwordToken ?? "")) {
                     Text("Password Token")
@@ -82,15 +94,32 @@ struct AccountDetailView: View {
                         .foregroundStyle(.red)
                 }
             }
+            #endif
             Section {
-                Button("Delete") {
-                    vm.delete(id: account?.id ?? "")
-                    dismiss()
-                }
+                AsyncButton {
+                    do {
+                        try await vm.delete(id: accountId)
+                        dismiss()
+                    } catch {
+                        deleteError = error.localizedDescription
+                        showDeleteError = true
+                        throw error
+                    }
+                } label: { Text("Delete") }
+                .disabledWhenLoading()
                 .foregroundStyle(.red)
             }
         }
         .formStyle(.grouped)
         .navigationTitle("Account Details")
+        .alert("Unable to Remove Account", isPresented: $showDeleteError) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(deleteError) }
+        #if os(macOS)
+        .sheet(isPresented: $signInAgain) {
+            AddAccountView(email: account?.account.email ?? "")
+                .frame(minWidth: 480, minHeight: 340)
+        }
+        #endif
     }
 }

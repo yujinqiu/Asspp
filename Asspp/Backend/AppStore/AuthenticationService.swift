@@ -15,7 +15,7 @@ extension AppStore {
     }
 
     @MainActor
-    func authenticate(email: String, password: String, code: String, using session: ApplePackage.Authenticator) async throws -> UserAccount {
+    func authenticate(email: String, password: String, code: String, using session: StoreAuthenticator) async throws -> UserAccount {
         logger.info("starting authentication for user")
         do {
             let appleAccount = try await session.authenticate(
@@ -35,6 +35,9 @@ extension AppStore {
     @MainActor
     @discardableResult
     func rotate(id: UserAccount.ID) async throws -> UserAccount? {
+        #if os(macOS)
+            throw StoreEngineError(message: String(localized: "Sign in again from the account page to refresh this account."))
+        #else
         logger.info("starting account rotation for user id: \(id)")
         guard let account = accounts.first(where: { $0.id == id }) else {
             logger.error("account not found for rotation, id: \(id)")
@@ -54,5 +57,6 @@ extension AppStore {
             logger.error("account rotation failed for user id: \(id): \(error.localizedDescription)")
             throw error
         }
+        #endif
     }
 }

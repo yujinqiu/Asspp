@@ -51,6 +51,15 @@ struct SettingView: View {
                 Text("Demo mode redacts all accounts and sensitive information.")
             }
 
+            #if os(macOS)
+            Section {
+                Text(ProcessInfo.processInfo.hostName)
+                    .redacted(reason: .placeholder, isEnabled: vm.demoMode)
+                Text("Connect your iPhone or iPad by USB and trust this Mac to install updates.")
+            } header: {
+                Text("Device")
+            }
+            #else
             Section {
                 Text(ProcessInfo.processInfo.hostName)
                     .redacted(reason: .placeholder, isEnabled: vm.demoMode)
@@ -137,6 +146,8 @@ struct SettingView: View {
             } message: {
                 Text("Changing the device GUID may cause all existing accounts to stop working. Apple limits the number of devices you can sign in with at once.")
             }
+
+            #endif
 
             Section {
                 Button("Reset", role: .destructive) {

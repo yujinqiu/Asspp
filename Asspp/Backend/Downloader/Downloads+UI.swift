@@ -60,6 +60,13 @@ extension Downloads {
 
 extension Downloads {
     func startDownload(for package: AppStore.AppPackage, accountID: String) async throws {
+        #if os(macOS)
+            guard let account = AppStore.this.accounts.first(where: { $0.id == accountID }) else {
+                throw AppStore.AuthenticationError.accountNotFound
+            }
+            let request = Downloads.this.add(request: PackageManifest(account: account, package: package))
+            Downloads.this.resume(request: request)
+        #else
         try await AppStore.this.withAccount(id: accountID) { account in
             let downloadOutput = try await StoreDownloadService.download(account: &account.account, package: package)
             let request = try Downloads.this.add(request: .init(
@@ -69,5 +76,6 @@ extension Downloads {
             ))
             Downloads.this.resume(request: request)
         }
+        #endif
     }
 }
