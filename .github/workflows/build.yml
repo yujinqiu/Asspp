@@ -1,5 +1,6 @@
 name: Build Mac App
 on:
+  workflow_dispatch:
   push:
     branches: [main, macos-modern-store]
   pull_request:

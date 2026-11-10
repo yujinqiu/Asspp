@@ -103,6 +103,7 @@ SwiftUI views organized by feature: Account, Search, Download, Installed (macOS 
 - `build.store-engine.sh` is an Xcode macOS build phase; install Go 1.26.5+ and xcbeautify.
 - Mac builds require `ENABLE_USER_SCRIPT_SANDBOXING=NO` for the Go compiler and module cache. The Mac fork is distributed outside the App Store and runs devicectl/helper processes as the current user. It does not ship Apple private framework assets or user credentials.
 - The release workflow builds/tests an Apple Silicon macOS ZIP only; iOS authentication modernization is out of scope.
+- This fork omits the upstream scheduled iOS signing workflow. Mac builds can also be started manually from GitHub Actions.
 - Never run cleanup/reset against a working checkout when packaging. Release artifacts go outside the checkout.
 - Packaging restores the local developer configuration on exit and embeds the ipatool license. Release notes are taken from the matching version section in `CHANGELOG.md`.
 - SwiftFairy currently has no active scroll content on the development machine; perform manual review and compiler/test checks unless the user enables it.
